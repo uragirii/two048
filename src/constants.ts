@@ -50,9 +50,11 @@ export const CELL_NUMBER_FONT_SIZE: Record<number, number> = {
   16: 45,
   32: 45,
   64: 45,
-  128: 40,
-  256: 40,
-  512: 40,
-  1024: 35,
-  2048: 35,
+  128: 35,
+  256: 35,
+  512: 35,
+  1024: 25,
+  2048: 25,
 };
+
+export const ANIMATION_DURATION = 100;

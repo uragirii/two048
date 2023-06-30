@@ -5,10 +5,11 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
-  FadeOut,
-  FadeIn,
+  ZoomOut,
+  ZoomIn,
 } from "react-native-reanimated";
 import {
+  ANIMATION_DURATION,
   CELL_COLORS,
   CELL_NUMBER_COLORS,
   CELL_NUMBER_FONT_SIZE,
@@ -25,6 +26,7 @@ interface Props {
 const Cell = ({ x, y, value }: Props) => {
   const cellWidth = useCellSize();
   const prevValue = useRef(value);
+  const scaleUp = useSharedValue(false);
 
   const getCellPosition = (x: number, y: number) => {
     return {
@@ -44,10 +46,30 @@ const Cell = ({ x, y, value }: Props) => {
 
   const animatedStyles = useAnimatedStyle(() => {
     return {
-      top: withTiming(top.value, { duration: 100 }),
-      left: withTiming(left.value, { duration: 100 }),
+      top: withTiming(top.value, { duration: ANIMATION_DURATION }),
+      left: withTiming(left.value, { duration: ANIMATION_DURATION }),
+      transform: [
+        {
+          scale: withTiming(
+            scaleUp.value ? 1.1 : 1,
+            {
+              duration: ANIMATION_DURATION / 2,
+            },
+            (finished) => {
+              if (finished) {
+                scaleUp.value = false;
+              }
+            }
+          ),
+        },
+      ],
     };
   });
+
+  if (prevValue.current !== value) {
+    scaleUp.value = true;
+    prevValue.current = value;
+  }
 
   return (
     <Animated.View
@@ -60,16 +82,18 @@ const Cell = ({ x, y, value }: Props) => {
         },
         animatedStyles,
       ]}
-      entering={FadeIn}
-      exiting={FadeOut}
+      entering={ZoomIn.delay(ANIMATION_DURATION).duration(ANIMATION_DURATION)}
+      exiting={ZoomOut.delay(ANIMATION_DURATION).duration(ANIMATION_DURATION)}
     >
       <Text
-        style={{
-          color: CELL_NUMBER_COLORS[value],
-          fontSize: CELL_NUMBER_FONT_SIZE[value],
-          fontFamily: theme.fonts.bold,
-          lineHeight: 1.25 * CELL_NUMBER_FONT_SIZE[value],
-        }}
+        style={[
+          {
+            color: CELL_NUMBER_COLORS[value],
+            fontSize: CELL_NUMBER_FONT_SIZE[value],
+            fontFamily: theme.fonts.bold,
+            lineHeight: 1.25 * CELL_NUMBER_FONT_SIZE[value],
+          },
+        ]}
       >
         {value}
       </Text>

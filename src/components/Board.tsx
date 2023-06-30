@@ -57,16 +57,15 @@ const Board = () => {
     runOnJS(move)(direction);
   });
 
-  useEffect(() => {
-    startGame();
-    logBoard();
-  }, []);
-
   logBoard();
 
   const cells = board.map(({ x, y, value, id }) => (
     <Cell x={x} y={y} value={value} key={id} />
   ));
+
+  if (board.length === 0) {
+    startGame();
+  }
 
   return (
     <>
