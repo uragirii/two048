@@ -1,12 +1,20 @@
 import { Text, StyleSheet } from "react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useCellSize } from "../hooks";
 import Animated, {
   useAnimatedStyle,
   withTiming,
   useSharedValue,
+  FadeOut,
+  FadeIn,
 } from "react-native-reanimated";
-import { MARGIN } from "../constants";
+import {
+  CELL_COLORS,
+  CELL_NUMBER_COLORS,
+  CELL_NUMBER_FONT_SIZE,
+  MARGIN,
+  theme,
+} from "../constants";
 
 interface Props {
   x: number;
@@ -16,6 +24,7 @@ interface Props {
 
 const Cell = ({ x, y, value }: Props) => {
   const cellWidth = useCellSize();
+  const prevValue = useRef(value);
 
   const getCellPosition = (x: number, y: number) => {
     return {
@@ -35,8 +44,8 @@ const Cell = ({ x, y, value }: Props) => {
 
   const animatedStyles = useAnimatedStyle(() => {
     return {
-      top: withTiming(top.value, { duration: 500 }),
-      left: withTiming(left.value, { duration: 500 }),
+      top: withTiming(top.value, { duration: 100 }),
+      left: withTiming(left.value, { duration: 100 }),
     };
   });
 
@@ -44,11 +53,26 @@ const Cell = ({ x, y, value }: Props) => {
     <Animated.View
       style={[
         styles.container,
-        { width: cellWidth, height: cellWidth },
+        {
+          width: cellWidth,
+          height: cellWidth,
+          backgroundColor: CELL_COLORS[value],
+        },
         animatedStyles,
       ]}
+      entering={FadeIn}
+      exiting={FadeOut}
     >
-      <Text>{value}</Text>
+      <Text
+        style={{
+          color: CELL_NUMBER_COLORS[value],
+          fontSize: CELL_NUMBER_FONT_SIZE[value],
+          fontFamily: theme.fonts.bold,
+          lineHeight: 1.25 * CELL_NUMBER_FONT_SIZE[value],
+        }}
+      >
+        {value}
+      </Text>
     </Animated.View>
   );
 };
