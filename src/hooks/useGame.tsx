@@ -2,202 +2,217 @@ import { useCallback } from "react";
 import { BOARD_SIZE } from "../constants";
 import { useForceRender } from "./useForceRender";
 
-export class BoardFilledError extends Error {
+export type Direction = "up" | "down" | "left" | "right";
+
+type BoardCell = {
+  id: string;
+  value: number;
+  x: number;
+  y: number;
+};
+
+class BoardFilled extends Error {
   constructor() {
     super();
-    this.message = "Board is filled and cannot spawn more cells";
-    this.name = "BoardFilledError";
+    this.name = "BoardFilled";
+    this.message = "Board has maxmimum number of cells possible";
   }
 }
 
-const BOARD: number[][] = new Array(BOARD_SIZE)
-  .fill(0)
-  .map(() => new Array(BOARD_SIZE).fill(0));
+const Board: BoardCell[] = [];
 
-let highestPower = 1;
+const getCellsWithX = (x: number) =>
+  Board.filter((cell) => cell.x === x).sort((a, b) => a.y - b.y);
+const getCellsWithY = (y: number) =>
+  Board.filter((cell) => cell.y === y).sort((a, b) => a.x - b.x);
+const getCellWithXY = (x: number, y: number) =>
+  Board.find((cell) => cell.x === x && cell.y === y);
 
-const logBoard = () => {
-  console.log(" ====LOG====");
-  BOARD.forEach((line, index) => {
-    const lineWithSpaces = line.map((cell) =>
-      cell === 0 ? " " : cell.toString()
-    );
-    console.log(index + 1, "|" + lineWithSpaces.join("|") + "|");
-  });
+const generateId = () => Math.floor(Math.random() * 1000000).toString();
+
+const getRandomPosition = () => ({
+  x: Math.floor(Math.random() * BOARD_SIZE),
+  y: Math.floor(Math.random() * BOARD_SIZE),
+});
+
+const spawnCell = (): void => {
+  if (Board.length === BOARD_SIZE * BOARD_SIZE) {
+    throw new BoardFilled();
+  }
+  const { x, y } = getRandomPosition();
+
+  const cellWithPosition = getCellWithXY(x, y);
+
+  if (cellWithPosition) {
+    return spawnCell();
+  } else {
+    Board.push({
+      id: generateId(),
+      x,
+      y,
+      value: 2,
+    });
+  }
 };
 
-const isBoardFilled = () =>
-  !BOARD.some((row) => row.some((cell) => cell === 0));
-
-const nextPosition = (): { x: number; y: number } => {
-  if (isBoardFilled()) {
-    throw new BoardFilledError();
-  }
-
-  const randomX = Math.floor(Math.random() * BOARD_SIZE);
-  const randomY = Math.floor(Math.random() * BOARD_SIZE);
-
-  if (BOARD[randomX][randomY] === 0) {
-    return { x: randomX, y: randomY };
-  }
-
-  return nextPosition();
-};
-const nextNumber = () =>
-  Math.pow(2, Math.floor(Math.random() * highestPower) + 1);
-
-const spawnCell = () => {
-  try {
-    const { x, y } = nextPosition();
-    const cellNum = nextNumber();
-
-    BOARD[x][y] = cellNum;
-  } catch (err) {
-    if (err instanceof BoardFilledError) {
-      throw new BoardFilledError();
-    } else {
-      throw err;
+const removeCell = (cell: BoardCell) => {
+  for (let i = 0; i < Board.length; ++i) {
+    if (Board[i] === cell) {
+      Board.splice(i, 1);
     }
   }
+};
+
+const resetBoard = () => {
+  Board.length = 0;
 };
 
 const startGame = () => {
-  console.log("Start Game");
-  highestPower = 1;
-
-  BOARD.forEach((_, index) => (BOARD[index] = new Array(BOARD_SIZE).fill(0)));
-
-  // To start, assign numbers at random places
+  console.log("START");
+  resetBoard();
   spawnCell();
   spawnCell();
 };
 
-export type Direction = "up" | "down" | "left" | "right";
+const logBoard = () => {
+  console.log("=== LOG ===");
+  for (let x = 0; x < BOARD_SIZE; ++x) {
+    const line = getCellsWithX(x);
+    const arr = new Array(BOARD_SIZE).fill(0);
+    line.forEach(({ y, value }) => (arr[y] = value));
+
+    console.log(`${x + 1} |${arr.join("|")}|`);
+  }
+};
 
 const move = (direction: Direction) => {
-  if (direction === "left") {
-    BOARD.forEach((line, x) => {
-      let emptyIndex = -1;
-      const combinedIndices: number[] = [];
-      for (let y = 0; y < BOARD_SIZE; ++y) {
-        if (BOARD[x][y] === 0) {
-          continue;
-        } else {
-          if (combinedIndices.includes(emptyIndex)) {
-            emptyIndex++;
-            BOARD[x][emptyIndex] = BOARD[x][y];
-            BOARD[x][y] = 0;
-          } else if (BOARD[x][emptyIndex] === BOARD[x][y]) {
-            BOARD[x][emptyIndex] = BOARD[x][y] * 2;
-            if (BOARD[x][y] === Math.pow(2, highestPower)) {
-              highestPower++;
-            }
-            combinedIndices.push(emptyIndex);
-            BOARD[x][y] = 0;
-          } else {
-            emptyIndex++;
-            BOARD[x][emptyIndex] = BOARD[x][y];
-            if (emptyIndex !== y) {
-              BOARD[x][y] = 0;
-            }
-          }
-        }
-      }
-    });
-  } else if (direction === "right") {
-    BOARD.forEach((line, x) => {
-      let emptyIndex = BOARD_SIZE;
-      const combinedIndices: number[] = [];
-      for (let y = BOARD_SIZE - 1; y >= 0; --y) {
-        if (BOARD[x][y] === 0) {
-          continue;
-        } else {
-          if (combinedIndices.includes(emptyIndex)) {
-            emptyIndex--;
-            BOARD[x][emptyIndex] = BOARD[x][y];
-            BOARD[x][y] = 0;
-          } else if (BOARD[x][emptyIndex] === BOARD[x][y]) {
-            BOARD[x][emptyIndex] = BOARD[x][y] * 2;
-            combinedIndices.push(emptyIndex);
-            BOARD[x][y] = 0;
-          } else {
-            emptyIndex--;
-            BOARD[x][emptyIndex] = BOARD[x][y];
-            if (emptyIndex !== y) {
-              BOARD[x][y] = 0;
-            }
-          }
-        }
-      }
-    });
-  } else if (direction === "up") {
-    for (let y = 0; y < BOARD_SIZE; ++y) {
-      let emptyIndex = -1;
-      const combinedIndices: number[] = [];
+  switch (direction) {
+    case "left": {
       for (let x = 0; x < BOARD_SIZE; ++x) {
-        if (BOARD[x][y] === 0) {
-          continue;
-        } else if (emptyIndex === -1) {
-          emptyIndex++;
-          BOARD[emptyIndex][y] = BOARD[x][y];
-          if (emptyIndex !== x) {
-            BOARD[x][y] = 0;
+        const line = getCellsWithX(x);
+        let y = 0;
+        const doubledCells: BoardCell[] = [];
+        const removedCells: BoardCell[] = [];
+        line.forEach((cell, index) => {
+          if (index === 0) {
+            cell.y = y;
+            y++;
+
+            return;
           }
-        } else if (combinedIndices.includes(emptyIndex)) {
-          emptyIndex++;
-          BOARD[emptyIndex][y] = BOARD[x][y];
-          BOARD[x][y] = 0;
-        } else if (BOARD[emptyIndex][x] === BOARD[x][y]) {
-          BOARD[emptyIndex][y] = BOARD[x][y] * 2;
-          if (BOARD[x][y] === Math.pow(2, highestPower)) {
-            highestPower++;
+          const prevCell = line[index - 1];
+          if (
+            prevCell.value === cell.value &&
+            !removedCells.includes(prevCell) &&
+            !doubledCells.includes(prevCell)
+          ) {
+            prevCell.value = prevCell.value * 2;
+            removedCells.push(cell);
+            doubledCells.push(prevCell);
+          } else {
+            cell.y = y;
+            y++;
           }
-          combinedIndices.push(emptyIndex);
-          BOARD[x][y] = 0;
-        } else {
-          emptyIndex++;
-          BOARD[emptyIndex][y] = BOARD[x][y];
-          if (emptyIndex !== x) {
-            BOARD[x][y] = 0;
-          }
-        }
+        });
+        removedCells.forEach((cell) => removeCell(cell));
       }
+      break;
     }
-  } else {
-    for (let y = 0; y < BOARD_SIZE; ++y) {
-      let emptyIndex = BOARD_SIZE;
-      const combinedIndices: number[] = [];
-      for (let x = BOARD_SIZE - 1; x >= 0; --x) {
-        if (BOARD[x][y] === 0) {
-          continue;
-        } else if (emptyIndex === BOARD_SIZE) {
-          emptyIndex--;
-          BOARD[emptyIndex][y] = BOARD[x][y];
-          if (emptyIndex !== x) {
-            BOARD[x][y] = 0;
+    case "right": {
+      for (let x = 0; x < BOARD_SIZE; ++x) {
+        const line = getCellsWithX(x).reverse();
+        let y = BOARD_SIZE - 1;
+        const doubledCells: BoardCell[] = [];
+        const removedCells: BoardCell[] = [];
+        line.forEach((cell, index) => {
+          if (index === 0) {
+            cell.y = y;
+            y--;
+
+            return;
           }
-        } else if (combinedIndices.includes(emptyIndex)) {
-          emptyIndex--;
-          BOARD[emptyIndex][y] = BOARD[x][y];
-          BOARD[x][y] = 0;
-        } else if (BOARD[emptyIndex][x] === BOARD[x][y]) {
-          BOARD[emptyIndex][y] = BOARD[x][y] * 2;
-          if (BOARD[x][y] === Math.pow(2, highestPower)) {
-            highestPower++;
+          const prevCell = line[index - 1];
+          if (
+            prevCell.value === cell.value &&
+            !removedCells.includes(prevCell) &&
+            !doubledCells.includes(prevCell)
+          ) {
+            prevCell.value = prevCell.value * 2;
+            removedCells.push(cell);
+            doubledCells.push(prevCell);
+          } else {
+            cell.y = y;
+            y--;
           }
-          combinedIndices.push(emptyIndex);
-          BOARD[x][y] = 0;
-        } else {
-          emptyIndex--;
-          BOARD[emptyIndex][y] = BOARD[x][y];
-          if (emptyIndex !== x) {
-            BOARD[x][y] = 0;
-          }
-        }
+        });
+        removedCells.forEach((cell) => removeCell(cell));
       }
+      break;
+    }
+    case "up": {
+      for (let y = 0; y < BOARD_SIZE; ++y) {
+        const line = getCellsWithY(y);
+        let x = 0;
+        const doubledCells: BoardCell[] = [];
+        const removedCells: BoardCell[] = [];
+        line.forEach((cell, index) => {
+          if (index === 0) {
+            cell.x = x;
+            x++;
+
+            return;
+          }
+          const prevCell = line[index - 1];
+          if (
+            prevCell.value === cell.value &&
+            !removedCells.includes(prevCell) &&
+            !doubledCells.includes(prevCell)
+          ) {
+            prevCell.value = prevCell.value * 2;
+            removedCells.push(cell);
+            doubledCells.push(prevCell);
+          } else {
+            cell.x = x;
+            x++;
+          }
+        });
+        removedCells.forEach((cell) => removeCell(cell));
+      }
+      break;
+    }
+    case "down": {
+      for (let y = 0; y < BOARD_SIZE; ++y) {
+        const line = getCellsWithY(y).reverse();
+        let x = BOARD_SIZE - 1;
+        const doubledCells: BoardCell[] = [];
+        const removedCells: BoardCell[] = [];
+        line.forEach((cell, index) => {
+          if (index === 0) {
+            cell.x = x;
+            x--;
+
+            return;
+          }
+          const prevCell = line[index - 1];
+          if (
+            prevCell.value === cell.value &&
+            !removedCells.includes(prevCell) &&
+            !doubledCells.includes(prevCell)
+          ) {
+            prevCell.value = prevCell.value * 2;
+            removedCells.push(cell);
+            doubledCells.push(prevCell);
+          } else {
+            cell.x = x;
+            x--;
+          }
+        });
+        removedCells.forEach((cell) => removeCell(cell));
+      }
+      break;
     }
   }
-  return;
+  spawnCell();
 };
 
 export const useGame = () => {
@@ -205,12 +220,11 @@ export const useGame = () => {
 
   const memoizedMove = useCallback((direction: Direction) => {
     move(direction);
-    spawnCell();
     forceRender();
   }, []);
 
   return {
-    board: BOARD,
+    board: Board,
     move: memoizedMove,
     startGame,
     logBoard,

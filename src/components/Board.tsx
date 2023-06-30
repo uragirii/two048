@@ -16,6 +16,7 @@ import BackgroundCell from "./BackgroundCell";
 import { useGame, Direction } from "../hooks";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
+import Cell from "./Cell";
 
 const Board = () => {
   const { width } = useWindowDimensions();
@@ -59,6 +60,10 @@ const Board = () => {
 
   logBoard();
 
+  const cells = board.map(({ x, y, value, id }) => (
+    <Cell x={x} y={y} value={value} key={id} />
+  ));
+
   return (
     <GestureDetector gesture={flingGesture}>
       <View
@@ -72,6 +77,7 @@ const Board = () => {
         ]}
       >
         {backgroundCells}
+        {cells}
       </View>
     </GestureDetector>
   );
