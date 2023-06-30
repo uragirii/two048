@@ -53,7 +53,7 @@ const Cell = ({ x, y, value }: Props) => {
           scale: withTiming(
             scaleUp.value ? 1.1 : 1,
             {
-              duration: ANIMATION_DURATION / 2,
+              duration: ANIMATION_DURATION,
             },
             (finished) => {
               if (finished) {
@@ -82,8 +82,8 @@ const Cell = ({ x, y, value }: Props) => {
         },
         animatedStyles,
       ]}
-      entering={ZoomIn.delay(ANIMATION_DURATION).duration(ANIMATION_DURATION)}
-      exiting={ZoomOut.delay(ANIMATION_DURATION).duration(ANIMATION_DURATION)}
+      entering={ZoomIn.duration(ANIMATION_DURATION)}
+      exiting={ZoomOut.duration(ANIMATION_DURATION)}
     >
       <Text
         style={[
