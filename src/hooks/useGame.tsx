@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { BOARD_SIZE } from "../constants";
 import { useForceRender } from "./useForceRender";
 
@@ -217,16 +217,32 @@ const move = (direction: Direction) => {
 
 export const useGame = () => {
   const forceRender = useForceRender();
+  const [gameOver, setGameOver] = useState(false);
 
   const memoizedMove = useCallback((direction: Direction) => {
-    move(direction);
+    try {
+      move(direction);
+    } catch (err) {
+      if (err instanceof BoardFilled) {
+        setGameOver(true);
+      } else {
+        console.error(err);
+        throw err;
+      }
+    }
     forceRender();
+  }, []);
+
+  const memoizedStartGame = useCallback(() => {
+    startGame();
+    setGameOver(false);
   }, []);
 
   return {
     board: Board,
     move: memoizedMove,
-    startGame,
+    startGame: memoizedStartGame,
     logBoard,
+    gameOver,
   };
 };

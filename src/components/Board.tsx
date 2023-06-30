@@ -17,6 +17,7 @@ import { useGame, Direction } from "../hooks";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import Cell from "./Cell";
+import GameOverScreen from "./GameOverScreen";
 
 const Board = () => {
   const { width } = useWindowDimensions();
@@ -26,9 +27,12 @@ const Board = () => {
       .map((_, index) => <BackgroundCell key={index.toString()} />);
   }, []);
 
-  const { logBoard, board, move, startGame } = useGame();
+  const { logBoard, board, move, startGame, gameOver } = useGame();
 
   const flingGesture = Gesture.Pan().onEnd((e) => {
+    if (gameOver) {
+      return;
+    }
     const absX = Math.abs(e.translationX);
     const absY = Math.abs(e.translationY);
     let direction: Direction;
@@ -65,21 +69,24 @@ const Board = () => {
   ));
 
   return (
-    <GestureDetector gesture={flingGesture}>
-      <View
-        style={[
-          styles.container,
-          // TODO: add fix for small screens
-          {
-            width: width * BOARD_WIDTH_MULTIPLIER,
-            height: width * BOARD_WIDTH_MULTIPLIER,
-          },
-        ]}
-      >
-        {backgroundCells}
-        {cells}
-      </View>
-    </GestureDetector>
+    <>
+      {gameOver && <GameOverScreen onTryAgain={startGame} />}
+      <GestureDetector gesture={flingGesture}>
+        <View
+          style={[
+            styles.container,
+            // TODO: add fix for small screens
+            {
+              width: width * BOARD_WIDTH_MULTIPLIER,
+              height: width * BOARD_WIDTH_MULTIPLIER,
+            },
+          ]}
+        >
+          {backgroundCells}
+          {cells}
+        </View>
+      </GestureDetector>
+    </>
   );
 };
 
